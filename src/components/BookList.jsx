@@ -4,6 +4,8 @@ import { Cog8ToothIcon, BackspaceIcon } from '@heroicons/react/24/outline';
 import { useData } from '../hooks/data-context';
 
 export const Booklist = ({ book }) => {
+  console.log('@@Book');
+
   const [bookTitle, setBookTitle] = useState(book.title);
   const [isEditing, toggleEditing] = useReducer((pre) => !pre, false);
   const { saveBook, removeBook, addMark, searchStr } = useData();
@@ -16,8 +18,6 @@ export const Booklist = ({ book }) => {
       toggleEditing();
     }
   };
-
-  console.log('@@Book');
 
   return (
     <div className='m-4 ml-6 mb-0 w-80 flex-shrink-0 rounded-sm bg-cyan-100'>
