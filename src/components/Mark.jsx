@@ -1,20 +1,127 @@
-import { TrashIcon, PencilIcon } from '@heroicons/react/24/outline';
+import {
+  TrashIcon,
+  PencilIcon,
+  PencilSquareIcon,
+  ArrowUturnLeftIcon,
+} from '@heroicons/react/24/outline';
+import { useEffect, useReducer, useRef, useState } from 'react';
+import { useData } from '../hooks/data-context';
+import ky from 'ky';
 
-export const Mark = ({ mark }) => {
+export const Mark = ({ mark, book }) => {
+  const { saveMark, removeMark } = useData();
+  const [isEditing, toggleEditing] = useReducer((pre) => !pre, !mark.id);
+  const urlRef = useRef();
+
+  const scrapOg = async (url) => {
+    return await ky(`https://sz.topician.com/sz/proxy?url=${url}`).json();
+  };
+
+  const save = (evt) => {
+    evt.stopPropagation();
+
+    if (isEditing) {
+      const url = urlRef.current.value;
+      mark.image = null;
+      mark.title = 'Fetching...';
+      mark.description = '';
+      mark.url = url;
+      scrapOg(url)
+        .then((ogRet) => {
+          console.log('ogRet>>>', ogRet);
+          mark.title = ogRet.title || 'No Title';
+          mark.image = ogRet.image;
+          mark.description = ogRet.description;
+          saveMark(book, mark);
+        })
+        .catch((error) => {
+          mark.title = 'ERROR!! ' + error.message;
+          mark.description = 'Please remove this!';
+          saveMark(book, mark);
+        });
+    }
+    toggleEditing();
+  };
+
+  const remove = (evt) => {
+    evt.stopPropagation();
+    if (confirm('정말 삭제시겠어요?')) removeMark(book, mark.id);
+  };
+
+  const openSite = () => {
+    // console.log('openSite!!>>>', mark);
+    if (!isEditing) window.open(mark.url, '_blank');
+  };
+
+  useEffect(() => {
+    if (urlRef.current)
+      urlRef.current.value =
+        mark.url || 'https://sprintina.github.io/my_index_page/';
+  }, [isEditing]);
+
   return (
-    <div className='mb-1 box-border border-2 p-1'>
-      <div>
-        <img src={mark.src} alt={mark.title} className='w-full' />
-      </div>
-      <h3 className='font-medium text-slate-700'>{mark.title}</h3>
-      <p className='text gray-500 text-sm'>{mark.description}</p>
-      <div className='item-center mr-2 mb-2 flex justify-end'>
-        <button className='mr-1 rounded-full bg-yellow-300 px-2 hover:bg-yellow-500'>
-          <PencilIcon className='h-10 w-5' />
+    <div
+      onClick={openSite}
+      aria-hidden='true'
+      className='group m-2 mb-3 box-border cursor-pointer rounded bg-slate-50 p-1 hover:bg-cyan-500'
+    >
+      {isEditing ? (
+        <>
+          <input
+            type='text'
+            ref={urlRef}
+            onFocus={() => urlRef.current.select()}
+            className='mb-2 w-full rounded p-1.5'
+            placeholder='https://....'
+          />
+        </>
+      ) : (
+        <div>
+          <div className='flex justify-center'>
+            {mark.image && (
+              <img
+                src={mark.image}
+                alt={mark.title}
+                className='max-h-[100px]'
+              />
+            )}
+          </div>
+          <h3 className='m-1 truncate font-medium text-slate-700'>
+            {mark.title}
+          </h3>
+          <p className='rounded0 m-1 truncate text-sm text-slate-500'>
+            {mark.description}
+          </p>
+        </div>
+      )}
+      <div
+        className={`item-center mr-3 ${
+          isEditing ? 'flex' : 'hidden'
+        } justify-end group-hover:flex`}
+      >
+        <button
+          onClick={save}
+          className='mb-1 mr-1 rounded-full bg-cyan-400 p-2 hover:bg-cyan-600'
+        >
+          <PencilSquareIcon className='h-4 text-white' />
         </button>
-        <button className='rounded-full bg-rose-300 px-2 hover:bg-rose-500'>
-          <TrashIcon className='h-10 w-5' />
+        <button
+          onClick={remove}
+          className='mb-1 rounded-full bg-rose-400 p-2 hover:bg-rose-500'
+        >
+          <TrashIcon className='h-4 text-white' />
         </button>
+        {isEditing && (
+          <button
+            onClick={(evt) => {
+              evt.stopPropagation();
+              toggleEditing();
+            }}
+            className='mx-1 mb-1 rounded-full bg-slate-300 p-2 hover:bg-slate-500'
+          >
+            <ArrowUturnLeftIcon className='h-4 text-white' />
+          </button>
+        )}
       </div>
     </div>
   );
